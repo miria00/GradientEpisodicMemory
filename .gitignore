@@ -6,3 +6,5 @@
 *.npz
 
 /data/raw/cifar-100-python
+
+gem-venv/
