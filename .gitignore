@@ -5,6 +5,8 @@
 *.tar.gz
 *.npz
 
+__pycache__/
+
 /data/raw/cifar-100-python
 
 gem-venv/
