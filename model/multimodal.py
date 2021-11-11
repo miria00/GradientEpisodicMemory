@@ -13,11 +13,7 @@ def reset_bias(m):
 
 
 class Net(nn.Module):
-    def __init__(self,
-                 n_inputs,
-                 n_outputs,
-                 n_tasks,
-                 args):
+    def __init__(self, n_inputs, n_outputs, n_tasks, args):
         super(Net, self).__init__()
 
         self.i_layer = nn.ModuleList()

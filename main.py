@@ -21,7 +21,7 @@ from metrics.metrics import confusion_matrix
 
 
 def load_datasets(args):
-    d_tr, d_te = torch.load(args.data_path + '/' + args.data_file)
+    d_tr, d_te = torch.load(args.data_path + "/" + args.data_file)
     n_inputs = d_tr[0][1].size(1)
     n_outputs = 0
     for i in range(len(d_tr)):
@@ -31,14 +31,13 @@ def load_datasets(args):
 
 
 class Continuum:
-
     def __init__(self, data, args):
         self.data = data
         self.batch_size = args.batch_size
         n_tasks = len(data)
         task_permutation = range(n_tasks)
 
-        if args.shuffle_tasks == 'yes':
+        if args.shuffle_tasks == "yes":
             task_permutation = torch.randperm(n_tasks).tolist()
 
         sample_permutations = []
@@ -78,14 +77,17 @@ class Continuum:
             ti = self.permutation[self.current][0]
             j = []
             i = 0
-            while (((self.current + i) < self.length) and
-                   (self.permutation[self.current + i][0] == ti) and
-                   (i < self.batch_size)):
+            while (
+                ((self.current + i) < self.length)
+                and (self.permutation[self.current + i][0] == ti)
+                and (i < self.batch_size)
+            ):
                 j.append(self.permutation[self.current + i][1])
                 i += 1
             self.current += i
             j = torch.LongTensor(j)
             return self.data[ti][1][j], ti, self.data[ti][2][j]
+
 
 # train handle ###############################################################
 
@@ -98,7 +100,7 @@ def eval_tasks(model, tasks, args):
         x = task[1]
         y = task[2]
         rt = 0
-        
+
         eval_bs = x.size(0)
 
         for b_from in range(0, x.size(0), eval_bs):
@@ -127,7 +129,7 @@ def life_experience(model, continuum, x_te, args):
     time_start = time.time()
 
     for (i, (x, t, y)) in enumerate(continuum):
-        if(((i % args.log_every) == 0) or (t != current_task)):
+        if ((i % args.log_every) == 0) or (t != current_task):
             result_a.append(eval_tasks(model, x_te, args))
             result_t.append(current_task)
             current_task = t
@@ -152,58 +154,80 @@ def life_experience(model, continuum, x_te, args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Continuum learning')
+    parser = argparse.ArgumentParser(description="Continuum learning")
 
     # model parameters
-    parser.add_argument('--model', type=str, default='single',
-                        help='model to train')
-    parser.add_argument('--n_hiddens', type=int, default=100,
-                        help='number of hidden neurons at each layer')
-    parser.add_argument('--n_layers', type=int, default=2,
-                        help='number of hidden layers')
+    parser.add_argument("--model", type=str, default="single", help="model to train")
+    parser.add_argument(
+        "--n_hiddens",
+        type=int,
+        default=100,
+        help="number of hidden neurons at each layer",
+    )
+    parser.add_argument(
+        "--n_layers", type=int, default=2, help="number of hidden layers"
+    )
 
     # memory parameters
-    parser.add_argument('--n_memories', type=int, default=0,
-                        help='number of memories per task')
-    parser.add_argument('--memory_strength', default=0, type=float,
-                        help='memory strength (meaning depends on memory)')
-    parser.add_argument('--finetune', default='no', type=str,
-                        help='whether to initialize nets in indep. nets')
+    parser.add_argument(
+        "--n_memories", type=int, default=0, help="number of memories per task"
+    )
+    parser.add_argument(
+        "--memory_strength",
+        default=0,
+        type=float,
+        help="memory strength (meaning depends on memory)",
+    )
+    parser.add_argument(
+        "--finetune",
+        default="no",
+        type=str,
+        help="whether to initialize nets in indep. nets",
+    )
 
     # optimizer parameters
-    parser.add_argument('--n_epochs', type=int, default=1,
-                        help='Number of epochs per task')
-    parser.add_argument('--batch_size', type=int, default=10,
-                        help='batch size')
-    parser.add_argument('--lr', type=float, default=1e-3,
-                        help='SGD learning rate')
+    parser.add_argument(
+        "--n_epochs", type=int, default=1, help="Number of epochs per task"
+    )
+    parser.add_argument("--batch_size", type=int, default=10, help="batch size")
+    parser.add_argument("--lr", type=float, default=1e-3, help="SGD learning rate")
 
     # experiment parameters
-    parser.add_argument('--cuda', type=str, default='no',
-                        help='Use GPU?')
-    parser.add_argument('--seed', type=int, default=0,
-                        help='random seed')
-    parser.add_argument('--log_every', type=int, default=100,
-                        help='frequency of logs, in minibatches')
-    parser.add_argument('--save_path', type=str, default='results/',
-                        help='save models at the end of training')
+    parser.add_argument("--cuda", type=str, default="no", help="Use GPU?")
+    parser.add_argument("--seed", type=int, default=0, help="random seed")
+    parser.add_argument(
+        "--log_every", type=int, default=100, help="frequency of logs, in minibatches"
+    )
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        default="results/",
+        help="save models at the end of training",
+    )
 
     # data parameters
-    parser.add_argument('--data_path', default='data/',
-                        help='path where data is located')
-    parser.add_argument('--data_file', default='mnist_permutations.pt',
-                        help='data file')
-    parser.add_argument('--samples_per_task', type=int, default=-1,
-                        help='training samples per task (all if negative)')
-    parser.add_argument('--shuffle_tasks', type=str, default='no',
-                        help='present tasks in order')
+    parser.add_argument(
+        "--data_path", default="data/", help="path where data is located"
+    )
+    parser.add_argument(
+        "--data_file", default="mnist_permutations.pt", help="data file"
+    )
+    parser.add_argument(
+        "--samples_per_task",
+        type=int,
+        default=-1,
+        help="training samples per task (all if negative)",
+    )
+    parser.add_argument(
+        "--shuffle_tasks", type=str, default="no", help="present tasks in order"
+    )
     args = parser.parse_args()
 
-    args.cuda = True if args.cuda == 'yes' else False
-    args.finetune = True if args.finetune == 'yes' else False
+    args.cuda = True if args.cuda == "yes" else False
+    args.finetune = True if args.finetune == "yes" else False
 
     # multimodal model has one extra layer
-    if args.model == 'multimodal':
+    if args.model == "multimodal":
         args.n_layers -= 1
 
     # unique identifier
@@ -224,30 +248,30 @@ if __name__ == "__main__":
     continuum = Continuum(x_tr, args)
 
     # load model
-    Model = importlib.import_module('model.' + args.model)
+    Model = importlib.import_module("model." + args.model)
     model = Model.Net(n_inputs, n_outputs, n_tasks, args)
     if args.cuda:
         model.cuda()
 
     # run model on continuum
-    result_t, result_a, spent_time = life_experience(
-        model, continuum, x_te, args)
+    result_t, result_a, spent_time = life_experience(model, continuum, x_te, args)
 
     # prepare saving path and file name
     if not os.path.exists(args.save_path):
         os.makedirs(args.save_path)
 
-    fname = args.model + '_' + args.data_file + '_'
+    fname = args.model + "_" + args.data_file + "_"
     fname += datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    fname += '_' + uid
+    fname += "_" + uid
     fname = os.path.join(args.save_path, fname)
 
     # save confusion matrix and print one line of stats
-    stats = confusion_matrix(result_t, result_a, fname + '.txt')
-    one_liner = str(vars(args)) + ' # '
-    one_liner += ' '.join(["%.3f" % stat for stat in stats])
-    print(fname + ': ' + one_liner + ' # ' + str(spent_time))
+    stats = confusion_matrix(result_t, result_a, fname + ".txt")
+    one_liner = str(vars(args)) + " # "
+    one_liner += " ".join(["%.3f" % stat for stat in stats])
+    print(fname + ": " + one_liner + " # " + str(spent_time))
 
     # save all results in binary file
-    torch.save((result_t, result_a, model.state_dict(),
-                stats, one_liner, args), fname + '.pt')
+    torch.save(
+        (result_t, result_a, model.state_dict(), stats, one_liner, args), fname + ".pt"
+    )

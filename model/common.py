@@ -11,7 +11,7 @@ from torch.nn.functional import relu, avg_pool2d
 
 
 def Xavier(m):
-    if m.__class__.__name__ == 'Linear':
+    if m.__class__.__name__ == "Linear":
         fan_in, fan_out = m.weight.data.size(1), m.weight.data.size(0)
         std = 1.0 * math.sqrt(2.0 / (fan_in + fan_out))
         a = math.sqrt(3.0) * std
@@ -37,8 +37,9 @@ class MLP(nn.Module):
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
+    return nn.Conv2d(
+        in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False
+    )
 
 
 class BasicBlock(nn.Module):
@@ -54,9 +55,14 @@ class BasicBlock(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1,
-                          stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(
+                    in_planes,
+                    self.expansion * planes,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False,
+                ),
+                nn.BatchNorm2d(self.expansion * planes),
             )
 
     def forward(self, x):

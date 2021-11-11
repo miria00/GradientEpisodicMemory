@@ -9,18 +9,13 @@ from .common import MLP, ResNet18
 
 
 class Net(torch.nn.Module):
-
-    def __init__(self,
-                 n_inputs,
-                 n_outputs,
-                 n_tasks,
-                 args):
+    def __init__(self, n_inputs, n_outputs, n_tasks, args):
         super(Net, self).__init__()
         nl, nh = args.n_layers, args.n_hiddens
         self.reg = args.memory_strength
 
         # setup network
-        self.is_cifar = (args.data_file == 'cifar100.pt')
+        self.is_cifar = args.data_file == "cifar100.pt"
         if self.is_cifar:
             self.net = ResNet18(n_outputs)
         else:
@@ -63,7 +58,7 @@ class Net(torch.nn.Module):
             if offset1 > 0:
                 output[:, :offset1].data.fill_(-10e10)
             if offset2 < self.n_outputs:
-                output[:, int(offset2):self.n_outputs].data.fill_(-10e10)
+                output[:, int(offset2) : self.n_outputs].data.fill_(-10e10)
         return output
 
     def observe(self, x, t, y):
@@ -75,12 +70,11 @@ class Net(torch.nn.Module):
 
             if self.is_cifar:
                 offset1, offset2 = self.compute_offsets(self.current_task)
-                self.bce((self.net(self.memx)[:, offset1: offset2]),
-                         self.memy - offset1).backward()
+                self.bce(
+                    (self.net(self.memx)[:, offset1:offset2]), self.memy - offset1
+                ).backward()
             else:
-                self.bce(self(self.memx,
-                              self.current_task),
-                         self.memy).backward()
+                self.bce(self(self.memx, self.current_task), self.memy).backward()
             self.fisher[self.current_task] = []
             self.optpar[self.current_task] = []
             for p in self.net.parameters():
@@ -100,14 +94,13 @@ class Net(torch.nn.Module):
                 self.memx = torch.cat((self.memx, x.data.clone()))
                 self.memy = torch.cat((self.memy, y.data.clone()))
                 if self.memx.size(0) > self.n_memories:
-                    self.memx = self.memx[:self.n_memories]
-                    self.memy = self.memy[:self.n_memories]
+                    self.memx = self.memx[: self.n_memories]
+                    self.memy = self.memy[: self.n_memories]
 
         self.net.zero_grad()
         if self.is_cifar:
             offset1, offset2 = self.compute_offsets(t)
-            loss = self.bce((self.net(x)[:, offset1: offset2]),
-                            y - offset1)
+            loss = self.bce((self.net(x)[:, offset1:offset2]), y - offset1)
         else:
             loss = self.bce(self(x, t), y)
         for tt in range(t):

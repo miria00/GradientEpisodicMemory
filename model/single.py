@@ -9,17 +9,12 @@ from .common import MLP, ResNet18
 
 
 class Net(torch.nn.Module):
-
-    def __init__(self,
-                 n_inputs,
-                 n_outputs,
-                 n_tasks,
-                 args):
+    def __init__(self, n_inputs, n_outputs, n_tasks, args):
         super(Net, self).__init__()
         nl, nh = args.n_layers, args.n_hiddens
 
         # setup network
-        self.is_cifar = (args.data_file == 'cifar100.pt')
+        self.is_cifar = args.data_file == "cifar100.pt"
         if self.is_cifar:
             self.net = ResNet18(n_outputs)
         else:
@@ -54,7 +49,7 @@ class Net(torch.nn.Module):
             if offset1 > 0:
                 output[:, :offset1].data.fill_(-10e10)
             if offset2 < self.n_outputs:
-                output[:, offset2:self.n_outputs].data.fill_(-10e10)
+                output[:, offset2 : self.n_outputs].data.fill_(-10e10)
         return output
 
     def observe(self, x, t, y):
@@ -62,8 +57,7 @@ class Net(torch.nn.Module):
         self.zero_grad()
         if self.is_cifar:
             offset1, offset2 = self.compute_offsets(t)
-            self.bce((self.net(x)[:, offset1: offset2]),
-                     y - offset1).backward()
+            self.bce((self.net(x)[:, offset1:offset2]), y - offset1).backward()
         else:
             self.bce(self(x, t), y).backward()
         self.opt.step()

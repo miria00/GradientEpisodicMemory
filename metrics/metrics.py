@@ -40,17 +40,17 @@ def confusion_matrix(result_t, result_a, fname=None):
         fwt[t] = result[t - 1, t] - baseline[t]
 
     if fname is not None:
-        f = open(fname, 'w')
+        f = open(fname, "w")
 
-        print(' '.join(['%.4f' % r for r in baseline]), file=f)
-        print('|', file=f)
+        print(" ".join(["%.4f" % r for r in baseline]), file=f)
+        print("|", file=f)
         for row in range(result.size(0)):
-            print(' '.join(['%.4f' % r for r in result[row]]), file=f)
-        print('', file=f)
+            print(" ".join(["%.4f" % r for r in result[row]]), file=f)
+        print("", file=f)
         # print('Diagonal Accuracy: %.4f' % acc.mean(), file=f)
-        print('Final Accuracy: %.4f' % fin.mean(), file=f)
-        print('Backward: %.4f' % bwt.mean(), file=f)
-        print('Forward:  %.4f' % fwt.mean(), file=f)
+        print("Final Accuracy: %.4f" % fin.mean(), file=f)
+        print("Backward: %.4f" % bwt.mean(), file=f)
+        print("Forward:  %.4f" % fwt.mean(), file=f)
         f.close()
 
     stats = []

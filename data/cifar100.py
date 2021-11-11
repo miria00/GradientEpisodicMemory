@@ -10,10 +10,10 @@ import torch
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--i', default='raw/cifar100.pt', help='input directory')
-parser.add_argument('--o', default='cifar100.pt', help='output file')
-parser.add_argument('--n_tasks', default=10, type=int, help='number of tasks')
-parser.add_argument('--seed', default=0, type=int, help='random seed')
+parser.add_argument("--i", default="raw/cifar100.pt", help="input directory")
+parser.add_argument("--o", default="cifar100.pt", help="output file")
+parser.add_argument("--n_tasks", default=10, type=int, help="number of tasks")
+parser.add_argument("--seed", default=0, type=int, help="random seed")
 args = parser.parse_args()
 
 torch.manual_seed(args.seed)
