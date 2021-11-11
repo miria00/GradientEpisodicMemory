@@ -27,7 +27,7 @@ class Net(torch.nn.Module):
         self.n_classes = n_outputs
         self.samples_per_task = args.samples_per_task
         if self.samples_per_task <= 0:
-            error("set explicitly args.samples_per_task")
+            raise ValueError("set explicitly args.samples_per_task")
         self.examples_seen = 0
 
         # setup network
