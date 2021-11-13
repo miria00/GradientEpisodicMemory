@@ -151,7 +151,7 @@ class Net(nn.Module):
             self.observed_tasks.append(t)
             self.old_task = t
 
-        # Update ring buffer storing examples from current task
+        # update ring buffer storing examples from current task
         bsz = y.data.size(0)
         endcnt = min(self.mem_cnt + bsz, self.n_memories)
         effbsz = endcnt - self.mem_cnt

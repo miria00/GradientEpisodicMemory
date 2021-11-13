@@ -5,9 +5,8 @@
 *.tar.gz
 *.npz
 
-__pycache__/
+__pycache__
 
 /data/raw/cifar-100-python
-
-gem-env/
-gem-venv/
+/wandb
+/.vscode

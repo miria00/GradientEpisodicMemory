@@ -4,20 +4,26 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import importlib
-import datetime
 import argparse
-import random
-import uuid
-import time
+import datetime
+import importlib
+import logging
 import os
+import random
+import time
+import uuid
 
 import numpy as np
-
 import torch
+import wandb
+from tqdm import tqdm
+
 from metrics.metrics import confusion_matrix
 
-# continuum iterator #########################################################
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+logger.addHandler(handler)
 
 
 def load_datasets(args):
@@ -89,9 +95,6 @@ class Continuum:
             return self.data[ti][1][j], ti, self.data[ti][2][j]
 
 
-# train handle ###############################################################
-
-
 def eval_tasks(model, tasks, args):
     model.eval()
     result = []
@@ -121,6 +124,16 @@ def eval_tasks(model, tasks, args):
     return result
 
 
+def log_metrics(eval_accs, current_task):
+    acc_dict = {f"eval_t{str(i).zfill(2)}_acc": acc for i, acc in enumerate(eval_accs)}
+    summary_dict = {
+        "eval_mean_acc": np.mean(eval_accs),
+        "current_task": current_task,
+    }
+    log_dict = {**acc_dict, **summary_dict}
+    wandb.log(log_dict)
+
+
 def life_experience(model, continuum, x_te, args):
     result_a = []
     result_t = []
@@ -128,10 +141,12 @@ def life_experience(model, continuum, x_te, args):
     current_task = 0
     time_start = time.time()
 
-    for (i, (x, t, y)) in enumerate(continuum):
+    for (i, (x, t, y)) in tqdm(enumerate(continuum)):
         if ((i % args.log_every) == 0) or (t != current_task):
-            result_a.append(eval_tasks(model, x_te, args))
+            eval_accs = eval_tasks(model, x_te, args)
+            result_a.append(eval_accs)
             result_t.append(current_task)
+            log_metrics(eval_accs, current_task)
             current_task = t
 
         v_x = x.view(x.size(0), -1)
@@ -144,8 +159,10 @@ def life_experience(model, continuum, x_te, args):
         model.train()
         model.observe(v_x, t, v_y)
 
-    result_a.append(eval_tasks(model, x_te, args))
+    eval_accs = eval_tasks(model, x_te, args)
+    result_a.append(eval_accs)
     result_t.append(current_task)
+    log_metrics(eval_accs, current_task)
 
     time_end = time.time()
     time_spent = time_end - time_start
@@ -230,6 +247,20 @@ if __name__ == "__main__":
     if args.model == "multimodal":
         args.n_layers -= 1
 
+    # init wandb
+    data_file_to_name = {
+        "mnist_rotations.pt": "mnist_rota",
+        "mnist_permutations.pt": "mnist_perm",
+        "cifar100.py": "cifar100",
+    }
+    dataset_name = data_file_to_name[args.data_file]
+    wandb.init(
+        project="gem",
+        entity="cs330_2021",
+        config=args,
+        tags=[dataset_name],
+    )
+
     # unique identifier
     uid = uuid.uuid4().hex
 
@@ -253,7 +284,10 @@ if __name__ == "__main__":
     if args.cuda:
         model.cuda()
 
+    wandb.watch(model, log_freq=100)
+
     # run model on continuum
+    logger.info("Started training.")
     result_t, result_a, spent_time = life_experience(model, continuum, x_te, args)
 
     # prepare saving path and file name
@@ -269,7 +303,7 @@ if __name__ == "__main__":
     stats = confusion_matrix(result_t, result_a, fname + ".txt")
     one_liner = str(vars(args)) + " # "
     one_liner += " ".join(["%.3f" % stat for stat in stats])
-    print(fname + ": " + one_liner + " # " + str(spent_time))
+    logger.debug(fname + ": " + one_liner + " # " + str(spent_time))
 
     # save all results in binary file
     torch.save(
