@@ -10,3 +10,4 @@ __pycache__
 /data/raw/cifar-100-python
 /wandb
 /.vscode
+env/

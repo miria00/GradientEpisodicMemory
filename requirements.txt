@@ -15,3 +15,5 @@ numpy
 torch
 torchvision
 uuid
+wandb
+quadprog
