@@ -17,3 +17,10 @@ torchvision
 uuid
 wandb
 quadprog
+scikit-learn
+scipy
+jax
+jaxlib
+neural-tangents
+seaborn
+tqdm

@@ -8,10 +8,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from jax import jit
+from neural_tangents import stax
+import neural_tangents as nt
+from bilevel_coresets import bilevel_coreset, loss_utils
+
 import numpy as np
 import quadprog
 
-from .common import MLP, ResNet18
+from .common import MLP, ResNet18 #, ConvNet
 
 # Auxiliary functions useful for GEM's inner optimization.
 
@@ -100,6 +105,7 @@ class Net(nn.Module):
             self.net = ResNet18(n_outputs)
         else:
             self.net = MLP([n_inputs] + [nh] * nl + [n_outputs])
+            # self.net = ConvNet(n_outputs)
 
         self.ce = nn.CrossEntropyLoss()
         self.n_outputs = n_outputs
@@ -132,6 +138,28 @@ class Net(nn.Module):
             self.nc_per_task = int(n_outputs / n_tasks)
         else:
             self.nc_per_task = n_outputs
+            
+        # create NTK for ConvNet (aka MLP?) for use by coreset
+        _, _, kernel_fn = stax.serial(
+        stax.Conv(32, (5, 5), (1, 1), padding='SAME', W_std=1., b_std=0.05),
+        stax.Relu(),
+        stax.Conv(64, (5, 5), (1, 1), padding='SAME', W_std=1., b_std=0.05),
+        stax.Relu(),
+        stax.Flatten(),
+        stax.Dense(128, 1., 0.05),
+        stax.Relu(),
+        stax.Dense(10, 1., 0.05))
+        kernel_fn = jit(kernel_fn, static_argnums=(2,))
+
+        def generate_cnn_ntk(X, Y):
+            n = X.shape[0]
+            m = Y.shape[0]
+            K = np.zeros((n, m))
+            for i in range(m):
+                K[:, i:i + 1] = np.array(kernel_fn(X, Y[i:i + 1], 'ntk'))
+            return K
+
+        self.proxy_kernel_fn = lambda x, y: generate_cnn_ntk(x.view(-1, 28, 28, 1).numpy(), y.view(-1, 28, 28, 1).numpy())
 
     def forward(self, x, t):
         output = self.net(x)
@@ -144,35 +172,33 @@ class Net(nn.Module):
             if offset2 < self.n_outputs:
                 output[:, offset2 : self.n_outputs].data.fill_(-10e10)
         return output
-'''
-    def observe(self, x, t, y):
-        # update memory
-        if t != self.old_task:
-            self.observed_tasks.append(t)
-            self.old_task = t
 
-        # update ring buffer storing examples from current task
-        bsz = y.data.size(0)
-        endcnt = min(self.mem_cnt + bsz, self.n_memories)
-        effbsz = endcnt - self.mem_cnt
-        self.memory_data[t, self.mem_cnt : endcnt].copy_(x.data[:effbsz])
-        if bsz == 1:
-            self.memory_labs[t, self.mem_cnt] = y.data[0]
-        else:
-            self.memory_labs[t, self.mem_cnt : endcnt].copy_(y.data[:effbsz])
-        self.mem_cnt += effbsz
-        if self.mem_cnt == self.n_memories:
-            self.mem_cnt = 0
-'''
+    # def observe(self, x, t, y):
+    #     # update memory
+    #     if t != self.old_task:
+    #         self.observed_tasks.append(t)
+    #         self.old_task = t
+
+    #     # update ring buffer storing examples from current task
+    #     bsz = y.data.size(0)
+    #     endcnt = min(self.mem_cnt + bsz, self.n_memories)
+    #     effbsz = endcnt - self.mem_cnt
+    #     self.memory_data[t, self.mem_cnt : endcnt].copy_(x.data[:effbsz])
+    #     if bsz == 1:
+    #         self.memory_labs[t, self.mem_cnt] = y.data[0]
+    #     else:
+    #         self.memory_labs[t, self.mem_cnt : endcnt].copy_(y.data[:effbsz])
+    #     self.mem_cnt += effbsz
+    #     if self.mem_cnt == self.n_memories:
+    #         self.mem_cnt = 0
 
     # solve_coreset via https://github.com/zalanborsos/bilevel_coresets 
-    def solve_coreset(subset_size, x, <TODO>):
-        poly_kernel = lambda x1, x2: np.dot(poly_features.transform(x1), poly_features.transform(x2).T)
+    def solve_coreset(self, subset_size, x, y):
         bc = bilevel_coreset.BilevelCoreset(outer_loss_fn=loss_utils.weighted_mse,
                                             inner_loss_fn=loss_utils.weighted_mse, out_dim=1, max_outer_it=1,
                                             inner_lr=0.25, max_inner_it=500, logging_period=100)
-        coreset_inds, _ = bc.build_with_representer_proxy_batch(x, y.reshape(-1, 1), 30, kernel_fn_np=poly_kernel,
-                                                                cache_kernel=True, start_size=3, inner_reg=reg)
+        coreset_inds, _ = bc.build_with_representer_proxy_batch(x, y, subset_size, kernel_fn_np=self.proxy_kernel_fn,
+                                                                cache_kernel=True, start_size=1, inner_reg=1e-7)
 
         return coreset_inds[:subset_size]
 
@@ -196,7 +222,7 @@ class Net(nn.Module):
                 x.data[: effbsz])
         # otherwise we prune using coresets
         else:
-            subset_inds = solve_coreset(effbsz, x.data)       
+            subset_inds = self.solve_coreset(effbsz, x.data, y.data)       
 
             # index x.data to get just subset elements, and store those into memory_data           
             sub_elements = x.data[subset_inds]
