@@ -154,6 +154,7 @@ class Net(nn.Module):
         # kernel_fn = jit(kernel_fn, static_argnums=(2,))
 
         # create NTK for MLP for use by coreset
+        # this Neural Tangent Kernel is created based on the work of https://arxiv.org/pdf/1912.02803.pdf
         init_fn, apply_fn, kernel_fn = stax.serial(
         stax.Dense(100, 1., 0.05),
         stax.Relu(),
@@ -162,10 +163,12 @@ class Net(nn.Module):
         stax.Dense(10, 1., 0.05))
         kernel_fn = jit(kernel_fn, static_argnums=(2,))
 
+        # generate
         def generate_fnn_ntk(X, Y):
             return np.array(kernel_fn(X, Y, 'ntk'))
 
 
+        # use FNN instead of CNN to be compatible with existing GEM 
         self.proxy_kernel_fn = lambda x, y: generate_fnn_ntk(x.reshape(-1, 28 * 28).numpy(), y.reshape(-1, 28 * 28).numpy())
         # self.proxy_kernel_fn = lambda x, y: generate_cnn_ntk(x.view(-1, 28, 28, 1).numpy(), y.view(-1, 28, 28, 1).numpy())
 
@@ -200,7 +203,7 @@ class Net(nn.Module):
     #     if self.mem_cnt == self.n_memories:
     #         self.mem_cnt = 0
 
-    # solve_coreset via https://github.com/zalanborsos/bilevel_coresets 
+    # solve_coreset via the bilcl optimization method of https://github.com/zalanborsos/bilevel_coresets 
     def solve_coreset(self, subset_size, x, y):
         print("A")
         # bc = bilevel_coreset.BilevelCoreset(outer_loss_fn=loss_utils.weighted_mse,

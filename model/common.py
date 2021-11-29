@@ -38,7 +38,7 @@ class MLP(nn.Module):
 
 
 
-
+# ConvNet not used in this iteration 
 class ConvNet(nn.Module):
     def __init__(self, output_dim):
         super(ConvNet, self).__init__()
