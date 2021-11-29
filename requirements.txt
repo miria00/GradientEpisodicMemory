@@ -24,3 +24,4 @@ jaxlib
 neural-tangents
 seaborn
 tqdm
+wandb
