@@ -10,20 +10,22 @@ CIFAR_100i="--n_layers 2 --n_hiddens 100 --data_path data/ --save_path results/ 
 # $MY_PYTHON main.py $MNIST_PERM --model single --lr 0.03
 
 # Original GEM
-# $MY_PYTHON main.py $MNIST_ROTA --model gem_original --lr 0.01 --n_memories 256 --memory_strength 0.5
-$MY_PYTHON main.py $MNIST_PERM --model gem_original --lr 0.1 --n_memories 20 --memory_strength 0.5
-# $MY_PYTHON main.py $CIFAR_100i --model gem_original --lr 0.1 --n_memories 256 --memory_strength 0.5
+# $MY_PYTHON main.py $MNIST_ROTA --model gem --lr 0.01 --n_memories 256 --memory_strength 0.5
+$MY_PYTHON main.py $MNIST_PERM --model gem --lr 0.1 --n_memories 100 --memory_strength 0.5
+# $MY_PYTHON main.py $CIFAR_100i --model gem --lr 0.1 --n_memories 256 --memory_strength 0.5
 
 # Surprise GEM
 # $MY_PYTHON main.py $MNIST_ROTA --model gem_surprise --lr 0.01 --n_memories 256 --memory_strength 0.5
-$MY_PYTHON main.py $MNIST_PERM --model gem_surprise --lr 0.1 --n_memories 20 --memory_strength 0.5
+$MY_PYTHON main.py $MNIST_PERM --model gem_surprise --lr 0.1 --n_memories 100 --memory_strength 0.5
 # $MY_PYTHON main.py $CIFAR_100i --model gem_surprise --lr 0.1 --n_memories 256 --memory_strength 0.5
 
 # Balanced GEM
 # $MY_PYTHON main.py $MNIST_ROTA --model gem_balanced --lr 0.01 --n_memories 256 --memory_strength 0.5
-$MY_PYTHON main.py $MNIST_PERM --model gem_balanced --lr 0.1 --n_memories 20 --memory_strength 0.5
+$MY_PYTHON main.py $MNIST_PERM --model gem_balanced --lr 0.1 --n_memories 100 --memory_strength 0.5
 # $MY_PYTHON main.py $CIFAR_100i --model gem_balanced --lr 0.1 --n_memories 256 --memory_strength 0.5
 
+# Coresets GEM
+$MY_PYTHON main.py $MNIST_PERM --model gem_coreset --lr 0.1 --n_memories 100 --memory_strength 0.5
 
 # plot results
 cd results/
